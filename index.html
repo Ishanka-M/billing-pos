@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Manage Pro - Billing & ERP</title>
+    <link rel="icon" type="image/x-icon"
+        href="https://raw.githubusercontent.com/FortAwesome/Font-Awesome/6.x/svgs/solid/infinity.svg">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b',
+                        dark: '#0f172a',
+                        light: '#f8fafc',
+                        accent: '#8b5cf6',
+                        success: '#10b981',
+                        warning: '#f59e0b',
+                        danger: '#ef4444',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- QRCode & PeerJS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+    <style>
+        [v-cloak] {
+            display: none !important;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .fade-enter-active,
+        .fade-leave-active {
+            transition: opacity 0.3s ease;
+        }
+
+        .fade-enter-from,
+        .fade-leave-to {
+            opacity: 0;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: #334155;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 dark:bg-dark dark:text-gray-100 transition-colors duration-300">
+    <div id="app" v-cloak class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside v-if="isLoggedIn && store.currentUser"
+            :class="['bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 z-20', isSidebarCollapsed ? 'w-20' : 'w-64']">
+            <div class="h-16 flex items-center justify-center border-b border-gray-200 dark:border-gray-700 px-4">
+                <div class="flex items-center gap-2 overflow-hidden" v-if="!isSidebarCollapsed">
+                    <i class="fa-solid fa-infinity text-primary text-2xl shrink-0"></i>
+                    <span class="font-bold text-lg tracking-tight truncate">Infinite Pro</span>
+                </div>
+                <i class="fa-solid fa-infinity text-primary text-2xl" v-else></i>
+            </div>
+
+            <nav class="flex-1 overflow-y-auto py-4 space-y-1 px-3">
+                <button v-for="item in menuItems" :key="item.id" @click="currentView = item.id" :class="['w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group relative', 
+                            currentView === item.id 
+                                ? 'bg-primary/10 text-primary dark:bg-primary/20' 
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700']">
+                    <i :class="[item.icon, 'text-lg w-6 text-center']"></i>
+                    <span v-if="!isSidebarCollapsed" class="font-medium text-sm">{{ item.label }}</span>
+                </button>
+            </nav>
+
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                <button @click="toggleTheme"
+                    class="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 mb-2">
+                    <i :class="['fa-solid w-6 text-center', isDark ? 'fa-sun' : 'fa-moon']"></i>
+                    <span v-if="!isSidebarCollapsed" class="text-sm text-left">{{ isDark ? 'Light' : 'Dark' }}
+                        Mode</span>
+                </button>
+
+                <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer group"
+                    @click="logout">
+                    <div
+                        class="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold text-xs shrink-0">
+                        {{ store.currentUser.name ? store.currentUser.name.charAt(0) : 'U' }}
+                    </div>
+                    <div v-if="!isSidebarCollapsed" class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold truncate">{{ store.currentUser.name }}</p>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-wider">{{ store.currentUser.role }}</p>
+                    </div>
+                    <i class="fa-solid fa-right-from-bracket text-gray-400 group-hover:text-danger px-1"></i>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col min-w-0 bg-gray-50 dark:bg-dark relative">
+            <header v-if="isLoggedIn"
+                class="h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6 shrink-0">
+                <h1 class="text-lg font-bold text-gray-800 dark:text-white capitalize">
+                    {{ currentViewDetails ? currentViewDetails.label : 'Dashboard' }}
+                </h1>
+                <div class="flex items-center gap-4">
+                    <div class="relative hidden md:block">
+                        <input type="text" placeholder="Search..."
+                            class="pl-9 pr-4 py-1.5 text-xs rounded-full bg-gray-100 dark:bg-gray-700 border-none focus:ring-1 focus:ring-primary w-40 focus:w-60 transition-all">
+                        <i
+                            class="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[10px]"></i>
+                    </div>
+                    <button class="p-2 text-gray-500 hover:text-primary transition-colors"><i
+                            class="fa-regular fa-bell"></i></button>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto overflow-x-hidden p-6">
+                <component :is="currentViewComponent" v-bind="viewProps" @login-success="currentView = 'dashboard'">
+                </component>
+            </div>
+        </main>
+
+        <!-- Global Toasts -->
+        <div class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3">
+            <transition-group name="fade">
+                <div v-for="toast in store.toasts" :key="toast.id"
+                    :class="['min-w-[320px] p-4 rounded-xl shadow-2xl border-l-4 flex items-center gap-4 bg-white dark:bg-gray-800', 
+                             toast.type === 'success' ? 'border-success' : toast.type === 'error' ? 'border-danger' : 'border-primary']">
+                    <i
+                        :class="['text-xl', toast.type === 'success' ? 'fa-solid fa-check-circle text-success' : toast.type === 'error' ? 'fa-solid fa-circle-exclamation text-danger' : 'fa-solid fa-circle-info text-primary']"></i>
+                    <div class="flex-1">
+                        <h4 class="font-bold text-sm">{{ toast.title }}</h4>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ toast.message }}</p>
+                    </div>
+                    <button @click="store.removeToast(toast.id)" class="text-gray-400 hover:text-gray-600"><i
+                            class="fa-solid fa-times"></i></button>
+                </div>
+            </transition-group>
+        </div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>
